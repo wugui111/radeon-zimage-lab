@@ -260,8 +260,6 @@ python scripts/02_gradio_zimage_app.py
 
 ![](assets/20260611_102957_image.png)
 
-
-
 如果后面平台端口代理打不开，可以改用 Gradio 临时公网链接。先在终端按 `Ctrl+C` 停止当前 Gradio，再运行：
 
 ```bash
@@ -290,11 +288,14 @@ https://cdn-media.huggingface.co/frpc-gradio-0.3/frpc_linux_amd64
 
 2. 在 JupyterLab 左侧文件区进入 `/workspace/radeon-zimage-lab`，点击上传按钮，把下载的 `frpc_linux_amd64` 上传到项目根目录。
 
+   ![](assets/20260611_105906_image.png)
 3. 回到云端终端重新运行：
 
 ```bash
 bash scripts/install_gradio_frpc.sh
 ```
+
+![](assets/20260611_110003_image.png)
 
 脚本会自动把上传的文件复制到：
 
@@ -315,7 +316,6 @@ Running on public URL: https://xxxxxxxxxxxxxxxx.gradio.live
 ```
 
 把这个 `gradio.live` 链接复制到浏览器打开即可。该链接是临时链接，终端进程停止或实例关闭后就会失效。
-
 
 ### 步骤 2：打开网页
 
@@ -341,6 +341,26 @@ Running on public URL: https://xxxxxxxxxxxxxxxx.gradio.live
 2. Jupyter 提供端口转发入口，选择 `7860`。
 3. 使用 `GRADIO_SHARE=1` 获取 `gradio.live` 临时公网链接。
 4. 如果平台没有暴露端口，请在 Notebook 单元格中运行 Gradio，直接在输出区域使用。
+
+### 步骤 2.1：端口和临时链接都失败时，使用 Notebook 控件版
+
+如果 `/proxy/7860/` 是 404，`GRADIO_SHARE=1` 又因为网络原因无法创建公网链接，可以直接使用 Jupyter Notebook 内嵌控件版。这个方案不需要开放端口，也不需要 `gradio.live`。
+
+操作步骤：
+
+1. 在 JupyterLab 左上角点击 `+`。
+2. 选择 `Python 3 (ipykernel)` 新建 Notebook。
+3. 在第一个单元格运行：
+
+```python
+%cd /workspace/radeon-zimage-lab
+%run scripts/06_notebook_photo_widget.py
+```
+
+4. 等模型加载完成后，Notebook 输出区会出现照片描述、摄影风格、图片尺寸、随机种子和 `生成图片` 按钮。
+5. 点击 `生成图片` 后，图片会直接显示在 Notebook 输出区，并保存到 `outputs/notebook_widget_seed_*.png`。
+
+课堂中如果网络限制较多，推荐优先使用这个控件版作为“进阶交互界面”，比 Gradio 外部访问更稳定。
 
 ### 步骤 3：使用网页生成图片
 
@@ -721,6 +741,15 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 4. 如果提示缺少 `frpc_linux_amd64_v0.3`，是否已运行 `bash scripts/install_gradio_frpc.sh`。
 
 如果平台没有开放端口代理，就使用 `gradio.live` 临时链接。临时链接只适合课堂演示和短时间体验，不要放入长期文档或公开传播。
+
+如果 `gradio.live` 也失败，使用 Notebook 控件版：
+
+```python
+%cd /workspace/radeon-zimage-lab
+%run scripts/06_notebook_photo_widget.py
+```
+
+这是 Radeon Cloud 当前环境下最稳的交互方案。
 
 ### 9. 学生需要提交什么？
 
