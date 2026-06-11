@@ -236,6 +236,9 @@ python scripts/01_generate_zimage.py \
 
 在 JupyterLab 左上角点击 `+`，选择 `Python 3 (ipykernel)` 新建 Notebook。
 
+
+![](assets/20260611_114127_image.png)
+
 ### 步骤 2：启动控件版生图界面
 
 在第一个单元格运行：
@@ -244,6 +247,9 @@ python scripts/01_generate_zimage.py \
 %cd /workspace/radeon-zimage-lab
 %run scripts/06_notebook_photo_widget.py
 ```
+
+
+![](assets/20260611_114152_image.png)
 
 首次运行会加载 Z-Image-Turbo 模型，请等待终端和 Notebook 输出区显示：
 
@@ -268,6 +274,9 @@ Model is ready.
 outputs/notebook_photo_时间_seed_种子.png
 ```
 
+
+![](assets/20260611_121231_image.png)
+
 如果 Notebook 输出区没有立即刷新，可以打开左侧 `outputs` 目录查看生成的 `.png` 文件。
 
 ### 步骤 4：学生小任务
@@ -288,8 +297,6 @@ outputs/notebook_photo_时间_seed_种子.png
 ## 六、项目拓展：LoRA 微调自己的生图风格
 
 ### 重要说明
-
-LoRA 微调不建议放进 30 分钟基础课堂。它更适合作为 2-4 学时项目或课后拓展。
 
 推荐项目题目：
 
