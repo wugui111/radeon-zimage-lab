@@ -167,7 +167,6 @@ bash scripts/install_deps.sh
 4. 安装本实验需要的基础生图依赖，并将 `transformers` 固定为 `<5`。
 5. 从 PyPI 安装 `diffusers==0.36.0`。这个版本已经包含 `ZImagePipeline`，课堂中不再依赖 GitHub 源码安装。
 
-
    ![](assets/20260611_101427_image.png)
 
 然后再次检查 GPU：
@@ -242,8 +241,6 @@ python scripts/01_generate_zimage.py \
 
 ### 步骤 1：启动 Gradio 应用
 
-
-
 如果没有安装 `gradio`，单独安装网页应用依赖：
 
 ```bash
@@ -261,7 +258,29 @@ python -c "import gradio as gr; print(gr.__version__)"
 python scripts/02_gradio_zimage_app.py
 ```
 
+![](assets/20260611_102957_image.png)
+
+
+
 如果后面平台端口代理打不开，可以改用 Gradio 临时公网链接。先在终端按 `Ctrl+C` 停止当前 Gradio，再运行：
+
+```bash
+GRADIO_SHARE=1 python scripts/02_gradio_zimage_app.py
+```
+
+如果出现以下错误：
+
+```text
+Could not create share link. Missing file: /root/.cache/huggingface/gradio/frpc/frpc_linux_amd64_v0.3
+```
+
+说明 Gradio 需要的临时公网隧道程序 `frpc` 没有自动下载成功。先运行：
+
+```bash
+bash scripts/install_gradio_frpc.sh
+```
+
+然后重新启动：
 
 ```bash
 GRADIO_SHARE=1 python scripts/02_gradio_zimage_app.py
@@ -275,12 +294,6 @@ Running on public URL: https://xxxxxxxxxxxxxxxx.gradio.live
 
 把这个 `gradio.live` 链接复制到浏览器打开即可。该链接是临时链接，终端进程停止或实例关闭后就会失效。
 
-
-```text
-Running on local URL: http://0.0.0.0:7860
-```
-
-![](assets/20260611_102957_image.png)
 
 ### 步骤 2：打开网页
 
@@ -683,6 +696,7 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 1. 终端是否显示 `Running on local URL`。
 2. `/proxy/7860/` 是否显示 404。
 3. 终端是否已经用 `GRADIO_SHARE=1` 重新启动，并输出 `Running on public URL`。
+4. 如果提示缺少 `frpc_linux_amd64_v0.3`，是否已运行 `bash scripts/install_gradio_frpc.sh`。
 
 如果平台没有开放端口代理，就使用 `gradio.live` 临时链接。临时链接只适合课堂演示和短时间体验，不要放入长期文档或公开传播。
 

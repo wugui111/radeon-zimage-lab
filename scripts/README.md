@@ -6,7 +6,8 @@ Recommended order:
 2. `python scripts/00_check_gpu.py`
 3. `python scripts/01_generate_zimage.py`
 4. Optional web app: check `python -c "import gradio as gr; print(gr.__version__)"`, then run `python scripts/02_gradio_zimage_app.py`
-5. Optional advanced project: prepare LoRA data with `python scripts/03_prepare_lora_dataset.py`
+5. Optional Gradio public link: if `GRADIO_SHARE=1` reports missing `frpc`, run `bash scripts/install_gradio_frpc.sh`
+6. Optional advanced project: prepare LoRA data with `python scripts/03_prepare_lora_dataset.py`
 
 Inside Radeon Cloud, PyTorch ROCm usually exposes the GPU through the `cuda` interface name. Seeing `cuda` in the scripts is expected.
 
