@@ -37,10 +37,8 @@
 │   ├── Dockerfile.zimage
 │   ├── build_and_push_zimage.sh
 │   └── README.md
-└── screenshots
-    ├── 01_open_radeon_cloud.png
-    ├── 02_after_login_gallery.png
-    └── 03_create_template_entry.png
+└── assets
+    └── 若干实验截图
 ```
 
 教师课前建议将 `scripts` 目录上传到一个 GitHub 仓库，例如：
@@ -122,17 +120,16 @@ Notebook 页面 -> Launcher -> Terminal
 如果教师已经准备 GitHub 仓库，在终端执行：
 
 ```bash
-git clone https://github.com/<teacher-name>/radeon-zimage-lab.git
+apt-get update
+apt-get install -y ca-certificates git
+update-ca-certificates
+git config --global http.sslCAInfo /etc/ssl/certs/ca-certificates.crt
+
+git clone https://github.com/wugui111/radeon-zimage-lab.git
 cd radeon-zimage-lab
 ```
 
-如果没有 GitHub 仓库，则通过 Jupyter 的上传按钮，把本机目录：
-
-```text
-/Users/keshiwei/C/RadeonCloud/scripts
-```
-
-上传到云端 Notebook 当前工作目录。
+如果教师使用其他仓库，请把上面的仓库地址替换成实际地址。不要优先使用关闭 SSL 校验的方式克隆仓库。
 
 ### 步骤 5：检查 GPU
 
@@ -154,17 +151,35 @@ GPU memory: ...
 
 ### 步骤 6：安装依赖
 
-运行：
+本实验建议使用独立虚拟环境，避免影响平台基础镜像中已有的 vLLM、transformers 等包。运行：
 
 ```bash
 bash scripts/install_deps.sh
 ```
 
-该脚本会安装：
+该脚本会自动完成三件事：
+
+1. 在容器内安装 `ca-certificates` 和 `git`，修复 GitHub 证书校验失败问题。
+2. 创建 `.venv` 虚拟环境，并使用 `--system-site-packages` 继承平台已有的 ROCm/PyTorch。
+3. 在 `.venv` 中安装本实验需要的依赖，并将 `transformers` 固定为 `<5`，避免破坏基础镜像中的 vLLM 依赖。
+
+安装完成后，先激活虚拟环境：
+
+```bash
+source .venv/bin/activate
+```
+
+然后再次检查 GPU：
+
+```bash
+python scripts/00_check_gpu.py
+```
+
+脚本会安装：
 
 - `modelscope`
 - `diffusers`
-- `transformers`
+- `transformers>=4.56,<5`
 - `accelerate`
 - `gradio`
 - `safetensors`
@@ -177,6 +192,7 @@ bash scripts/install_deps.sh
 运行：
 
 ```bash
+source .venv/bin/activate
 python scripts/01_generate_zimage.py
 ```
 
@@ -222,6 +238,7 @@ python scripts/01_generate_zimage.py \
 在云端终端运行：
 
 ```bash
+source .venv/bin/activate
 python scripts/02_gradio_zimage_app.py
 ```
 
@@ -294,7 +311,7 @@ Radeon Cloud 的 Gallery 页面提供 `Create Template` 按钮。页面源码中
 
 这说明平台支持基于已有容器镜像创建模板。但它看起来不是在网页中直接构建镜像，而是选择一个已经存在或已经被平台允许的容器镜像。
 
-![Create Template 入口位置](screenshots/03_create_template_entry.png)
+![Create Template 入口位置](assets/20260611_083317_image.png)
 
 ### 教师课前镜像构建
 
@@ -503,17 +520,59 @@ PyTorch ROCm 环境通常复用 `torch.cuda` 接口，因此 AMD GPU 也会通�
 
 首次运行需要安装依赖并下载模型。建议教师课前使用懒人镜像方案，把依赖和模型缓存进镜像。
 
-### 3. 显存不够怎么办？
+### 3. 安装依赖时报 GitHub 证书错误怎么办？
+
+如果看到类似错误：
+
+```text
+server certificate verification failed. CAfile: none CRLfile: none
+```
+
+说明容器里缺少 CA 根证书。新版 `scripts/install_deps.sh` 已经自动处理。也可以手动运行：
+
+```bash
+apt-get update
+apt-get install -y ca-certificates git
+update-ca-certificates
+git config --global http.sslCAInfo /etc/ssl/certs/ca-certificates.crt
+```
+
+然后重新执行：
+
+```bash
+bash scripts/install_deps.sh
+source .venv/bin/activate
+```
+
+### 4. 安装依赖时提示 `transformers` 或 `starlette` 版本冲突怎么办？
+
+这是因为基础镜像中可能预装了 vLLM 等工具，它们对依赖版本有要求。本实验只为 Z-Image 使用，推荐使用 `.venv` 虚拟环境：
+
+```bash
+bash scripts/install_deps.sh
+source .venv/bin/activate
+```
+
+如果已经在全局环境里装过最新版 `transformers`，可以在当前虚拟环境中重新固定版本：
+
+```bash
+pip install -U "transformers>=4.56,<5" "starlette>=0.30,<1"
+```
+
+课堂中不要执行全局关闭证书校验命令，例如 `git config --global http.sslVerify false`，除非是临时容器且用完立即销毁。
+
+### 5. 显存不够怎么办？
 
 可以先降低图片尺寸：
 
 ```bash
+source .venv/bin/activate
 python scripts/01_generate_zimage.py --height 512 --width 512
 ```
 
 也可以在后续版本中加入 CPU offload 或使用 DiffSynth-Studio 的低显存推理方案。
 
-### 4. Gradio 网页打不开怎么办？
+### 6. Gradio 网页打不开怎么办？
 
 优先检查：
 
@@ -523,7 +582,7 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 
 如果平台没有开放端口代理，可以把网页应用作为教师演示，学生只完成 Python 脚本版。
 
-### 5. 学生需要提交什么？
+### 7. 学生需要提交什么？
 
 基础实验提交：
 
