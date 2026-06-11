@@ -9,8 +9,11 @@ if [ -n "${VIRTUAL_ENV:-}" ]; then
   exit 1
 fi
 
-if command -v apt-get >/dev/null 2>&1; then
-  echo "[1/5] Refreshing CA certificates if apt is usable..."
+if command -v git >/dev/null 2>&1 && [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+  echo "[1/5] git and CA certificates are already available; skipping apt refresh."
+  git config --global http.sslCAInfo /etc/ssl/certs/ca-certificates.crt
+elif command -v apt-get >/dev/null 2>&1; then
+  echo "[1/5] Installing CA certificates and git if needed..."
   apt-get update || echo "WARNING: apt-get update failed partially; continuing because this lab does not need ROCm apt packages."
   apt-get install -y ca-certificates git || echo "WARNING: could not install ca-certificates/git; continuing with the current image."
   update-ca-certificates || true
@@ -61,9 +64,7 @@ python -m pip install -U --upgrade-strategy only-if-needed -c "${CONSTRAINT_FILE
   "transformers>=4.56,<5" \
   "sentencepiece" \
   "safetensors" \
-  "gradio>=4.44,<6" \
-  "pillow" \
-  "starlette>=0.30,<1"
+  "pillow"
 
 echo "[4/5] Installing diffusers ${DIFFUSERS_VERSION} with Z-Image support from PyPI..."
 python -m pip install -U --upgrade-strategy only-if-needed -c "${CONSTRAINT_FILE}" "diffusers==${DIFFUSERS_VERSION}"
@@ -72,14 +73,19 @@ echo "[5/5] Verifying environment..."
 python - <<'PY'
 import torch
 from diffusers import ZImagePipeline
+from modelscope import snapshot_download
 
 print("PyTorch:", torch.__version__)
 print("CUDA/ROCm interface available:", torch.cuda.is_available())
 if torch.cuda.is_available():
     print("GPU:", torch.cuda.get_device_name(0))
 print("Diffusers ZImagePipeline:", ZImagePipeline.__name__)
+print("ModelScope snapshot_download:", snapshot_download.__name__)
 PY
 
 echo
 echo "Environment is ready. Run the experiment scripts with the normal python command, for example:"
 echo "  python scripts/01_generate_zimage.py --height 512 --width 512"
+echo
+echo "For the optional Gradio web app, first check whether Gradio is already available:"
+echo "  python -c \"import gradio as gr; print(gr.__version__)\""

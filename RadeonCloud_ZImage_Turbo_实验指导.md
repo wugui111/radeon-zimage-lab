@@ -164,7 +164,7 @@ bash scripts/install_deps.sh
 1. 在容器内安装 `ca-certificates` 和 `git`，修复 GitHub 基础证书缺失问题。
 2. 先检查当前基础环境能否通过 `torch.cuda` 看到 AMD GPU。
 3. 记录当前 ROCm PyTorch 版本，并用约束文件防止 pip 安装普通 PyPI 版 `torch`。
-4. 安装本实验需要的依赖，并将 `transformers` 固定为 `<5`、`starlette` 固定为 `<1`。
+4. 安装本实验需要的基础生图依赖，并将 `transformers` 固定为 `<5`。
 5. 从 PyPI 安装 `diffusers==0.36.0`。这个版本已经包含 `ZImagePipeline`，课堂中不再依赖 GitHub 源码安装。
 
 然后再次检查 GPU：
@@ -179,7 +179,6 @@ python scripts/00_check_gpu.py
 - `diffusers==0.36.0`
 - `transformers>=4.56,<5`
 - `accelerate`
-- `gradio`
 - `safetensors`
 - `pillow`
 
@@ -235,7 +234,14 @@ python scripts/01_generate_zimage.py \
 在云端终端运行：
 
 ```bash
+python -c "import gradio as gr; print(gr.__version__)"
 python scripts/02_gradio_zimage_app.py
+```
+
+如果第一行提示没有安装 `gradio`，再单独安装网页应用依赖：
+
+```bash
+python -m pip install -U gradio
 ```
 
 启动成功后，终端会显示类似：
@@ -584,15 +590,30 @@ CUDA/ROCm interface available: True
 
 如果检查失败，请换用包含 ROCm/PyTorch 的 Radeon Cloud 模板，或者使用教师提前制作的懒人镜像。不要继续安装普通 PyPI 版 `torch`。
 
-### 6. 安装依赖时提示 `transformers` 或 `starlette` 版本冲突怎么办？
+### 6. 安装依赖时看到 `pip's dependency resolver` 提示怎么办？
 
-这是因为基础镜像中可能预装了 vLLM 等工具，它们对依赖版本有要求。本实验只为 Z-Image 使用，脚本会固定相关版本：
+如果日志中出现类似：
+
+```text
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed.
+```
+
+但后面继续出现：
+
+```text
+[5/5] Verifying environment...
+Environment is ready.
+```
+
+这不是脚本失败，而是 pip 对已有平台包的兼容性提示。新版脚本默认不再安装 `gradio/starlette`，会尽量减少这种无关提示。
+
+如果脚本中途真的失败，终端最后不会出现 `Environment is ready`。此时先重新运行：
 
 ```bash
 bash scripts/install_deps.sh
 ```
 
-脚本会把 `transformers` 固定为 `<5`，把 `starlette` 固定为 `<1`，并约束当前 ROCm PyTorch 版本，避免 pip 换成普通 PyPI 版 `torch`。
+脚本会把 `transformers` 固定为 `<5`，并约束当前 ROCm PyTorch 版本，避免 pip 换成普通 PyPI 版 `torch`。
 
 ### 7. 显存不够怎么办？
 
