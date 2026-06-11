@@ -147,6 +147,8 @@ GPU name: ...
 GPU memory: ...
 ```
 
+![](assets/20260611_085241_image.png)
+
 说明：在 ROCm/PyTorch 环境中，AMD GPU 通常仍通过 `cuda` 这个接口名暴露给 Python，看到 `cuda` 是正常现象。
 
 ### 步骤 6：安装依赖
@@ -157,11 +159,13 @@ GPU memory: ...
 bash scripts/install_deps.sh
 ```
 
-该脚本会自动完成三件事：
+该脚本会自动完成以下事情：
 
-1. 在容器内安装 `ca-certificates` 和 `git`，修复 GitHub 证书校验失败问题。
+1. 在容器内安装 `ca-certificates` 和 `git`，修复 GitHub 基础证书缺失问题。
 2. 创建 `.venv` 虚拟环境，并使用 `--system-site-packages` 继承平台已有的 ROCm/PyTorch。
-3. 在 `.venv` 中安装本实验需要的依赖，并将 `transformers` 固定为 `<5`，避免破坏基础镜像中的 vLLM 依赖。
+3. 先检查当前环境能否通过 `torch.cuda` 看到 AMD GPU，避免错误安装普通 PyPI 版 `torch`。
+4. 在 `.venv` 中安装本实验需要的依赖，并将 `transformers` 固定为 `<5`，避免破坏基础镜像中的 vLLM 依赖。
+5. 从 PyPI 安装 `diffusers==0.36.0`。这个版本已经包含 `ZImagePipeline`，课堂中不再依赖 GitHub 源码安装。
 
 安装完成后，先激活虚拟环境：
 
@@ -178,7 +182,7 @@ python scripts/00_check_gpu.py
 脚本会安装：
 
 - `modelscope`
-- `diffusers`
+- `diffusers==0.36.0`
 - `transformers>=4.56,<5`
 - `accelerate`
 - `gradio`
@@ -520,7 +524,7 @@ PyTorch ROCm 环境通常复用 `torch.cuda` 接口，因此 AMD GPU 也会通�
 
 首次运行需要安装依赖并下载模型。建议教师课前使用懒人镜像方案，把依赖和模型缓存进镜像。
 
-### 3. 安装依赖时报 GitHub 证书错误怎么办？
+### 3. `pip install git+https://github.com/huggingface/diffusers` 为什么会失败？
 
 如果看到类似错误：
 
@@ -528,23 +532,45 @@ PyTorch ROCm 环境通常复用 `torch.cuda` 接口，因此 AMD GPU 也会通�
 server certificate verification failed. CAfile: none CRLfile: none
 ```
 
-说明容器里缺少 CA 根证书。新版 `scripts/install_deps.sh` 已经自动处理。也可以手动运行：
+或者：
 
-```bash
-apt-get update
-apt-get install -y ca-certificates git
-update-ca-certificates
-git config --global http.sslCAInfo /etc/ssl/certs/ca-certificates.crt
+```text
+server certificate verification failed. CAfile: /etc/ssl/certs/ca-certificates.crt
 ```
 
-然后重新执行：
+说明失败点不是 Z-Image 模型，而是容器里的 `git` 在访问 GitHub 时无法验证证书链。这个问题常见于云端容器缺少 CA 根证书，或平台出口网络存在代理证书。
+
+新版 `scripts/install_deps.sh` 已经不再从 GitHub 源码安装 diffusers，而是改为从 PyPI 安装：
 
 ```bash
+diffusers==0.36.0
+```
+
+该版本已经包含 `ZImagePipeline`，可以直接用于本实验。
+
+如果你已经运行过旧脚本，建议删除旧虚拟环境后重来：
+
+```bash
+cd /workspace/radeon-zimage-lab
+rm -rf .venv
 bash scripts/install_deps.sh
 source .venv/bin/activate
+python scripts/00_check_gpu.py
 ```
 
-### 4. 安装依赖时提示 `transformers` 或 `starlette` 版本冲突怎么办？
+### 4. 安装过程中为什么出现 `torch-2.12.0` 和很多 `nvidia-*` 包？
+
+这通常说明当前模板没有把 Radeon Cloud 的 ROCm PyTorch 暴露给这个 Python 环境，pip 就从 PyPI 拉了普通 CUDA/NVIDIA 版 PyTorch。这个环境即使装完，也很可能无法调用 AMD GPU。
+
+新版 `scripts/install_deps.sh` 会先检查：
+
+```text
+CUDA/ROCm interface available: True
+```
+
+如果检查失败，请换用包含 ROCm/PyTorch 的 Radeon Cloud 模板，或者使用教师提前制作的懒人镜像。不要继续在这个 `.venv` 里安装普通 PyPI 版 `torch`。
+
+### 5. 安装依赖时提示 `transformers` 或 `starlette` 版本冲突怎么办？
 
 这是因为基础镜像中可能预装了 vLLM 等工具，它们对依赖版本有要求。本实验只为 Z-Image 使用，推荐使用 `.venv` 虚拟环境：
 
@@ -553,15 +579,9 @@ bash scripts/install_deps.sh
 source .venv/bin/activate
 ```
 
-如果已经在全局环境里装过最新版 `transformers`，可以在当前虚拟环境中重新固定版本：
+脚本会把 `transformers` 固定为 `<5`，把 `starlette` 固定为 `<1`。课堂中不要把这些依赖安装到全局 Python 环境。
 
-```bash
-pip install -U "transformers>=4.56,<5" "starlette>=0.30,<1"
-```
-
-课堂中不要执行全局关闭证书校验命令，例如 `git config --global http.sslVerify false`，除非是临时容器且用完立即销毁。
-
-### 5. 显存不够怎么办？
+### 6. 显存不够怎么办？
 
 可以先降低图片尺寸：
 
@@ -572,7 +592,7 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 
 也可以在后续版本中加入 CPU offload 或使用 DiffSynth-Studio 的低显存推理方案。
 
-### 6. Gradio 网页打不开怎么办？
+### 7. Gradio 网页打不开怎么办？
 
 优先检查：
 
@@ -582,7 +602,7 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 
 如果平台没有开放端口代理，可以把网页应用作为教师演示，学生只完成 Python 脚本版。
 
-### 7. 学生需要提交什么？
+### 8. 学生需要提交什么？
 
 基础实验提交：
 

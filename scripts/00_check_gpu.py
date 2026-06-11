@@ -1,4 +1,12 @@
-import torch
+try:
+    import torch
+except Exception as exc:
+    raise SystemExit(
+        "PyTorch is not available in this environment. "
+        "Please use a Radeon Cloud template that includes ROCm/PyTorch, "
+        "or use the teacher's prebuilt Z-Image image.\n"
+        f"Original import error: {exc!r}"
+    )
 
 print("PyTorch:", torch.__version__)
 print("CUDA/ROCm interface available:", torch.cuda.is_available())
@@ -10,4 +18,3 @@ if torch.cuda.is_available():
     print("GPU memory:", round(props.total_memory / 1024**3, 2), "GB")
 else:
     print("No GPU was detected. Please check that the Radeon Cloud instance has started with GPU resources.")
-

@@ -12,3 +12,5 @@ Recommended order:
 Inside Radeon Cloud, PyTorch ROCm usually exposes the GPU through the `cuda` interface name. Seeing `cuda` in the scripts is expected.
 
 `install_deps.sh` creates an isolated `.venv` with `--system-site-packages`, so it can reuse the platform ROCm/PyTorch installation without changing the base vLLM environment.
+
+The script checks that ROCm PyTorch is already visible before installing dependencies. It installs `diffusers==0.36.0` from PyPI because this version already includes `ZImagePipeline` and avoids GitHub certificate failures during class.
