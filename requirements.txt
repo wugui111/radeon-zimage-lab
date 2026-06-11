@@ -1,0 +1,9 @@
+modelscope
+accelerate
+transformers
+sentencepiece
+safetensors
+gradio
+pillow
+git+https://github.com/huggingface/diffusers
+
