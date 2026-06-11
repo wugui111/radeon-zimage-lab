@@ -167,6 +167,9 @@ bash scripts/install_deps.sh
 4. 安装本实验需要的基础生图依赖，并将 `transformers` 固定为 `<5`。
 5. 从 PyPI 安装 `diffusers==0.36.0`。这个版本已经包含 `ZImagePipeline`，课堂中不再依赖 GitHub 源码安装。
 
+
+   ![](assets/20260611_101427_image.png)
+
 然后再次检查 GPU：
 
 ```bash
@@ -198,11 +201,17 @@ python scripts/01_generate_zimage.py
 真实摄影风格，一位年轻旅行者站在清晨的高山湖泊旁，远处雪山和薄雾，金色日出光线，自然表情，电影感构图，高细节，画面中不包含文字和水印
 ```
 
+这个脚本会下载 Z-Image-Turbo 生图模型，需要等待约5分钟，后续下载好后流程会快很多
+
+![](assets/20260611_101610_image.png)
+
 生成完成后，图片会保存到：
 
 ```text
 outputs/zimage_result.png
 ```
+
+![](assets/20260611_102513_image.png)
 
 也可以自定义提示词：
 
@@ -214,6 +223,8 @@ python scripts/01_generate_zimage.py \
   --seed 123 \
   --output outputs/city_portrait.png
 ```
+
+![](assets/20260611_102620_image.png)
 
 ### 步骤 8：查看生成结果
 
@@ -231,34 +242,70 @@ python scripts/01_generate_zimage.py \
 
 ### 步骤 1：启动 Gradio 应用
 
-在云端终端运行：
+
+
+如果没有安装 `gradio`，单独安装网页应用依赖：
+
+```bash
+python -m pip install -U gradio
+```
+
+运行这行安装会报以下依赖冲突，但是不影响安装成功
+
+![](assets/20260611_102815_image.png)
+
+接着在云端终端运行：
 
 ```bash
 python -c "import gradio as gr; print(gr.__version__)"
 python scripts/02_gradio_zimage_app.py
 ```
 
-如果第一行提示没有安装 `gradio`，再单独安装网页应用依赖：
+如果后面平台端口代理打不开，可以改用 Gradio 临时公网链接。先在终端按 `Ctrl+C` 停止当前 Gradio，再运行：
 
 ```bash
-python -m pip install -U gradio
+GRADIO_SHARE=1 python scripts/02_gradio_zimage_app.py
 ```
 
-启动成功后，终端会显示类似：
+启动后终端会多输出一行类似：
+
+```text
+Running on public URL: https://xxxxxxxxxxxxxxxx.gradio.live
+```
+
+把这个 `gradio.live` 链接复制到浏览器打开即可。该链接是临时链接，终端进程停止或实例关闭后就会失效。
+
 
 ```text
 Running on local URL: http://0.0.0.0:7860
 ```
 
+![](assets/20260611_102957_image.png)
+
 ### 步骤 2：打开网页
 
 根据 Radeon Cloud/Jupyter 的端口代理方式打开 `7860` 端口。
 
-常见方式有三种：
+先尝试把当前 Jupyter 地址中的：
+
+```text
+/lab/tree/radeon-zimage-lab/outputs
+```
+
+替换为：
+
+```text
+/proxy/7860/
+```
+
+如果页面显示 `404 : Not Found`，说明当前平台没有开放标准 Jupyter 端口代理，使用上一步的 `GRADIO_SHARE=1` 临时公网链接。
+
+常见方式有四种：
 
 1. Notebook 页面自动显示 Gradio 链接，直接点击。
 2. Jupyter 提供端口转发入口，选择 `7860`。
-3. 如果平台没有暴露端口，请在 Notebook 单元格中运行 Gradio，直接在输出区域使用。
+3. 使用 `GRADIO_SHARE=1` 获取 `gradio.live` 临时公网链接。
+4. 如果平台没有暴露端口，请在 Notebook 单元格中运行 Gradio，直接在输出区域使用。
 
 ### 步骤 3：使用网页生成图片
 
@@ -634,10 +681,10 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 优先检查：
 
 1. 终端是否显示 `Running on local URL`。
-2. 平台是否提供端口代理。
-3. 是否需要在 Notebook 输出区直接使用 Gradio。
+2. `/proxy/7860/` 是否显示 404。
+3. 终端是否已经用 `GRADIO_SHARE=1` 重新启动，并输出 `Running on public URL`。
 
-如果平台没有开放端口代理，可以把网页应用作为教师演示，学生只完成 Python 脚本版。
+如果平台没有开放端口代理，就使用 `gradio.live` 临时链接。临时链接只适合课堂演示和短时间体验，不要放入长期文档或公开传播。
 
 ### 9. 学生需要提交什么？
 

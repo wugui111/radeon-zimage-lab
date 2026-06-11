@@ -10,6 +10,7 @@ from modelscope import snapshot_download
 
 MODEL_ID = "Tongyi-MAI/Z-Image-Turbo"
 CACHE_DIR = os.environ.get("MODEL_CACHE_DIR", "./models")
+GRADIO_SHARE = os.environ.get("GRADIO_SHARE", "").lower() in {"1", "true", "yes", "y"}
 
 
 if not torch.cuda.is_available():
@@ -79,4 +80,4 @@ with gr.Blocks(title="Radeon Cloud AI 生图应用") as demo:
     button.click(generate, inputs=[prompt, style, seed, size], outputs=[image, info])
 
 
-demo.launch(server_name="0.0.0.0", server_port=7860)
+demo.launch(server_name="0.0.0.0", server_port=7860, share=GRADIO_SHARE)
