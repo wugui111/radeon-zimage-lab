@@ -125,11 +125,11 @@ apt-get install -y ca-certificates git
 update-ca-certificates
 git config --global http.sslCAInfo /etc/ssl/certs/ca-certificates.crt
 
-git clone https://github.com/wugui111/radeon-zimage-lab.git
+git -c http.sslVerify=false clone https://github.com/wugui111/radeon-zimage-lab.git
 cd radeon-zimage-lab
 ```
 
-如果教师使用其他仓库，请把上面的仓库地址替换成实际地址。不要优先使用关闭 SSL 校验的方式克隆仓库。
+如果教师使用其他仓库，请把上面的仓库地址替换成实际地址。这里的 `http.sslVerify=false` 只作用于本次 `clone` 命令，用来绕过当前 Radeon Cloud 容器访问 GitHub 时的证书链问题；不要设置全局 `git config --global http.sslVerify false`。
 
 ### 步骤 5：检查 GPU
 
@@ -153,7 +153,7 @@ GPU memory: ...
 
 ### 步骤 6：安装依赖
 
-本实验建议使用独立虚拟环境，避免影响平台基础镜像中已有的 vLLM、transformers 等包。运行：
+本实验直接使用 Radeon Cloud 模板自带的 Python 环境，因为该环境已经能识别 AMD GPU 和 ROCm PyTorch。运行：
 
 ```bash
 bash scripts/install_deps.sh
@@ -162,16 +162,10 @@ bash scripts/install_deps.sh
 该脚本会自动完成以下事情：
 
 1. 在容器内安装 `ca-certificates` 和 `git`，修复 GitHub 基础证书缺失问题。
-2. 创建 `.venv` 虚拟环境，并使用 `--system-site-packages` 继承平台已有的 ROCm/PyTorch。
-3. 先检查当前环境能否通过 `torch.cuda` 看到 AMD GPU，避免错误安装普通 PyPI 版 `torch`。
-4. 在 `.venv` 中安装本实验需要的依赖，并将 `transformers` 固定为 `<5`，避免破坏基础镜像中的 vLLM 依赖。
+2. 先检查当前基础环境能否通过 `torch.cuda` 看到 AMD GPU。
+3. 记录当前 ROCm PyTorch 版本，并用约束文件防止 pip 安装普通 PyPI 版 `torch`。
+4. 安装本实验需要的依赖，并将 `transformers` 固定为 `<5`、`starlette` 固定为 `<1`。
 5. 从 PyPI 安装 `diffusers==0.36.0`。这个版本已经包含 `ZImagePipeline`，课堂中不再依赖 GitHub 源码安装。
-
-安装完成后，先激活虚拟环境：
-
-```bash
-source .venv/bin/activate
-```
 
 然后再次检查 GPU：
 
@@ -196,7 +190,6 @@ python scripts/00_check_gpu.py
 运行：
 
 ```bash
-source .venv/bin/activate
 python scripts/01_generate_zimage.py
 ```
 
@@ -242,7 +235,6 @@ python scripts/01_generate_zimage.py \
 在云端终端运行：
 
 ```bash
-source .venv/bin/activate
 python scripts/02_gradio_zimage_app.py
 ```
 
@@ -548,51 +540,71 @@ diffusers==0.36.0
 
 该版本已经包含 `ZImagePipeline`，可以直接用于本实验。
 
-如果你已经运行过旧脚本，建议删除旧虚拟环境后重来：
+如果你已经运行过旧脚本，建议删除旧虚拟环境后重来。新版脚本不会再创建或使用 `.venv`：
 
 ```bash
 cd /workspace/radeon-zimage-lab
 rm -rf .venv
 bash scripts/install_deps.sh
-source .venv/bin/activate
 python scripts/00_check_gpu.py
 ```
 
-### 4. 安装过程中为什么出现 `torch-2.12.0` 和很多 `nvidia-*` 包？
+### 4. 为什么旧版 `.venv` 方案会失败？
 
-这通常说明当前模板没有把 Radeon Cloud 的 ROCm PyTorch 暴露给这个 Python 环境，pip 就从 PyPI 拉了普通 CUDA/NVIDIA 版 PyTorch。这个环境即使装完，也很可能无法调用 AMD GPU。
+在当前 Radeon Cloud 模板中，基础环境直接运行：
 
-新版 `scripts/install_deps.sh` 会先检查：
+```bash
+python scripts/00_check_gpu.py
+```
+
+可以看到：
+
+```text
+PyTorch: 2.9.1+gitff65f5b
+CUDA/ROCm interface available: True
+```
+
+但创建 `.venv --system-site-packages` 后，`.venv` 里反而报：
+
+```text
+ModuleNotFoundError("No module named 'torch'")
+```
+
+这说明该模板里的 ROCm PyTorch 不在普通 venv 能稳定继承的位置。因此本实验改为直接使用平台基础 Python，并通过 pip 约束保护当前 ROCm PyTorch 不被替换。
+
+### 5. 安装过程中为什么出现 `torch-2.12.0` 和很多 `nvidia-*` 包？
+
+这通常说明旧脚本在看不到 ROCm PyTorch 的 `.venv` 里安装依赖，pip 就从 PyPI 拉了普通 CUDA/NVIDIA 版 PyTorch。这个环境即使装完，也很可能无法调用 AMD GPU。
+
+新版 `scripts/install_deps.sh` 会在基础 Python 中先检查：
 
 ```text
 CUDA/ROCm interface available: True
 ```
 
-如果检查失败，请换用包含 ROCm/PyTorch 的 Radeon Cloud 模板，或者使用教师提前制作的懒人镜像。不要继续在这个 `.venv` 里安装普通 PyPI 版 `torch`。
+如果检查失败，请换用包含 ROCm/PyTorch 的 Radeon Cloud 模板，或者使用教师提前制作的懒人镜像。不要继续安装普通 PyPI 版 `torch`。
 
-### 5. 安装依赖时提示 `transformers` 或 `starlette` 版本冲突怎么办？
+### 6. 安装依赖时提示 `transformers` 或 `starlette` 版本冲突怎么办？
 
-这是因为基础镜像中可能预装了 vLLM 等工具，它们对依赖版本有要求。本实验只为 Z-Image 使用，推荐使用 `.venv` 虚拟环境：
+这是因为基础镜像中可能预装了 vLLM 等工具，它们对依赖版本有要求。本实验只为 Z-Image 使用，脚本会固定相关版本：
 
 ```bash
 bash scripts/install_deps.sh
-source .venv/bin/activate
 ```
 
-脚本会把 `transformers` 固定为 `<5`，把 `starlette` 固定为 `<1`。课堂中不要把这些依赖安装到全局 Python 环境。
+脚本会把 `transformers` 固定为 `<5`，把 `starlette` 固定为 `<1`，并约束当前 ROCm PyTorch 版本，避免 pip 换成普通 PyPI 版 `torch`。
 
-### 6. 显存不够怎么办？
+### 7. 显存不够怎么办？
 
 可以先降低图片尺寸：
 
 ```bash
-source .venv/bin/activate
 python scripts/01_generate_zimage.py --height 512 --width 512
 ```
 
 也可以在后续版本中加入 CPU offload 或使用 DiffSynth-Studio 的低显存推理方案。
 
-### 7. Gradio 网页打不开怎么办？
+### 8. Gradio 网页打不开怎么办？
 
 优先检查：
 
@@ -602,7 +614,7 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 
 如果平台没有开放端口代理，可以把网页应用作为教师演示，学生只完成 Python 脚本版。
 
-### 8. 学生需要提交什么？
+### 9. 学生需要提交什么？
 
 基础实验提交：
 

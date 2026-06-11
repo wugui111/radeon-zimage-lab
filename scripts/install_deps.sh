@@ -1,36 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VENV_DIR="${VENV_DIR:-.venv}"
 DIFFUSERS_VERSION="${DIFFUSERS_VERSION:-0.36.0}"
 
+if [ -n "${VIRTUAL_ENV:-}" ]; then
+  echo "ERROR: A virtual environment is active: ${VIRTUAL_ENV}"
+  echo "Please run 'deactivate' first. This lab must use the Radeon Cloud base Python because it already contains ROCm PyTorch."
+  exit 1
+fi
+
 if command -v apt-get >/dev/null 2>&1; then
-  echo "[1/6] Installing CA certificates for GitHub/HTTPS access..."
-  apt-get update
-  apt-get install -y ca-certificates git
-  update-ca-certificates
+  echo "[1/5] Refreshing CA certificates if apt is usable..."
+  apt-get update || echo "WARNING: apt-get update failed partially; continuing because this lab does not need ROCm apt packages."
+  apt-get install -y ca-certificates git || echo "WARNING: could not install ca-certificates/git; continuing with the current image."
+  update-ca-certificates || true
   if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
     git config --global http.sslCAInfo /etc/ssl/certs/ca-certificates.crt
   fi
 else
-  echo "[1/6] apt-get not found; skipping system CA installation."
+  echo "[1/5] apt-get not found; skipping system CA refresh."
 fi
 
-echo "[2/6] Creating an isolated Python environment: ${VENV_DIR}"
-python -m venv --system-site-packages "${VENV_DIR}"
-
-# shellcheck disable=SC1091
-source "${VENV_DIR}/bin/activate"
-
-echo "[3/6] Checking ROCm PyTorch from the platform image..."
-if ! python - <<'PY'
+echo "[2/5] Checking ROCm PyTorch from the Radeon Cloud base Python..."
+python - <<'PY'
 import sys
 
 try:
     import torch
 except Exception as exc:
-    print("ERROR: PyTorch is not available in this Python environment.")
-    print("Please launch a Radeon Cloud template that already includes ROCm PyTorch, then rerun this script.")
+    print("ERROR: PyTorch is not available in the base Python environment.")
+    print("Please use a Radeon Cloud ROCm/PyTorch template or the teacher's prebuilt image.")
     print("Original import error:", repr(exc))
     sys.exit(1)
 
@@ -39,19 +38,11 @@ print("PyTorch path:", torch.__file__)
 print("CUDA/ROCm interface available:", torch.cuda.is_available())
 if not torch.cuda.is_available():
     print("ERROR: No GPU is visible through torch.cuda.")
-    print("Do not continue installing PyPI torch; use a ROCm/PyTorch Radeon Cloud image instead.")
+    print("Please check that the Radeon Cloud instance has GPU resources.")
     sys.exit(1)
 
 print("GPU:", torch.cuda.get_device_name(0))
 PY
-then
-  echo
-  echo "The current .venv cannot see ROCm PyTorch."
-  echo "If this is a rerun after a failed install, remove the old environment first:"
-  echo "  rm -rf ${VENV_DIR}"
-  echo "Then start from a Radeon Cloud ROCm/PyTorch template and run this script again."
-  exit 1
-fi
 
 TORCH_VERSION="$(python - <<'PY'
 import torch
@@ -62,7 +53,7 @@ CONSTRAINT_FILE="$(mktemp)"
 trap 'rm -f "${CONSTRAINT_FILE}"' EXIT
 printf 'torch==%s\n' "${TORCH_VERSION}" > "${CONSTRAINT_FILE}"
 
-echo "[4/6] Installing Python dependencies in ${VENV_DIR}"
+echo "[3/5] Installing Python dependencies without replacing ROCm PyTorch..."
 python -m pip install -U pip
 python -m pip install -U --upgrade-strategy only-if-needed -c "${CONSTRAINT_FILE}" \
   "modelscope" \
@@ -74,10 +65,10 @@ python -m pip install -U --upgrade-strategy only-if-needed -c "${CONSTRAINT_FILE
   "pillow" \
   "starlette>=0.30,<1"
 
-echo "[5/6] Installing diffusers ${DIFFUSERS_VERSION} with Z-Image support from PyPI..."
+echo "[4/5] Installing diffusers ${DIFFUSERS_VERSION} with Z-Image support from PyPI..."
 python -m pip install -U --upgrade-strategy only-if-needed -c "${CONSTRAINT_FILE}" "diffusers==${DIFFUSERS_VERSION}"
 
-echo "[6/6] Verifying environment..."
+echo "[5/5] Verifying environment..."
 python - <<'PY'
 import torch
 from diffusers import ZImagePipeline
@@ -90,6 +81,5 @@ print("Diffusers ZImagePipeline:", ZImagePipeline.__name__)
 PY
 
 echo
-echo "Environment is ready."
-echo "Before running the experiment scripts, activate it with:"
-echo "  source ${VENV_DIR}/bin/activate"
+echo "Environment is ready. Run the experiment scripts with the normal python command, for example:"
+echo "  python scripts/01_generate_zimage.py --height 512 --width 512"
