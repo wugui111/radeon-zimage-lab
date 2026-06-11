@@ -1,8 +1,8 @@
 # Radeon Cloud 部署 Z-Image-Turbo 生图模型实验指导
 
-适用对象：软件技术、云计算技术相关专业学生  
-实验平台：Radeon Cloud，https://radeon.anruicloud.com/  
-实验模型：Tongyi-MAI/Z-Image-Turbo  
+适用对象：软件技术、云计算技术相关专业学生
+实验平台：Radeon Cloud，https://radeon.anruicloud.com/
+实验模型：Tongyi-MAI/Z-Image-Turbo
 建议课时：基础实验 30-45 分钟；网页应用 1 学时；LoRA 微调 2-4 学时或课后项目
 
 ## 一、实验目标
@@ -16,7 +16,7 @@
 5. 理解“通用下载部署”和“教师预缓存镜像部署”两种课堂组织方式。
 6. 了解使用少量图片进行 LoRA 微调的基本流程。
 
-本实验不要求学生理解扩散模型、DMD、DiT、ROCm 内核等复杂原理。课堂重点是：云端 GPU 资源如何支撑一个可运行的 AI 生图应用。
+本实验：云端 GPU 资源如何支撑一个可运行的 AI 生图应用。
 
 ## 二、实验材料
 
@@ -61,15 +61,11 @@ https://github.com/<teacher-name>/radeon-zimage-lab
 https://radeon.anruicloud.com/
 ```
 
-页面打开后可以看到 Radeon Cloud Gallery。
-
-![打开 Radeon Cloud](screenshots/01_open_radeon_cloud.png)
-
 ### 步骤 2：登录平台
 
 点击右上角登录入口，使用教师提供的账号方式登录。登录成功后，右上角会显示用户名或头像。
 
-![登录后的 Gallery 页面](screenshots/02_after_login_gallery.png)
+![](assets/20260611_083317_image.png)
 
 ### 步骤 3：认识页面上的关键按钮
 
@@ -101,17 +97,23 @@ Gallery 页面常用按钮如下：
 
 ### 步骤 2：等待 Notebook 就绪
 
+![](assets/20260611_083208_image.png)
+
 点击 `Launch` 后，平台会显示启动状态。等待状态变为 ready 或出现打开 Notebook 的入口。
 
 如果页面提示只能有一个活动实例，请进入 `Space` 查看已有实例，复用或关闭旧实例。
 
 ### 步骤 3：打开 Notebook 终端
 
+![](assets/20260611_083426_image.png)
+
 进入 Notebook 后，打开 Terminal。通常路径是：
 
 ```text
 Notebook 页面 -> Launcher -> Terminal
 ```
+
+![](assets/20260611_083645_image.png)
 
 或者在左侧文件区中新建 Notebook，再通过单元格运行命令。
 
