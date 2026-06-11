@@ -30,7 +30,7 @@ def main():
 
     pipe = ZImagePipeline.from_pretrained(
         model_dir,
-        torch_dtype=torch.bfloat16,
+        dtype=torch.bfloat16,
         low_cpu_mem_usage=False,
     )
     pipe.to("cuda")

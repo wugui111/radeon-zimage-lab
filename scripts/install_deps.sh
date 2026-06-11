@@ -64,6 +64,7 @@ python -m pip install -U --upgrade-strategy only-if-needed -c "${CONSTRAINT_FILE
   "transformers>=4.56,<5" \
   "sentencepiece" \
   "safetensors" \
+  "ipywidgets" \
   "pillow"
 
 echo "[4/5] Installing diffusers ${DIFFUSERS_VERSION} with Z-Image support from PyPI..."
@@ -87,5 +88,5 @@ echo
 echo "Environment is ready. Run the experiment scripts with the normal python command, for example:"
 echo "  python scripts/01_generate_zimage.py --height 512 --width 512"
 echo
-echo "For the optional Gradio web app, first check whether Gradio is already available:"
-echo "  python -c \"import gradio as gr; print(gr.__version__)\""
+echo "For the interactive Notebook widget UI, create a Python notebook and run:"
+echo "  %run scripts/06_notebook_photo_widget.py"

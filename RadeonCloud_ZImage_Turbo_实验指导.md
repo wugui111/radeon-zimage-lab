@@ -3,7 +3,7 @@
 适用对象：软件技术、云计算技术相关专业学生
 实验平台：Radeon Cloud，https://radeon.anruicloud.com/
 实验模型：Tongyi-MAI/Z-Image-Turbo
-建议课时：基础实验 30-45 分钟；网页应用 1 学时；LoRA 微调 2-4 学时或课后项目
+建议课时：基础实验 30-45 分钟；Notebook 控件版交互生图 1 学时；LoRA 微调 2-4 学时或课后项目
 
 ## 一、实验目标
 
@@ -12,9 +12,8 @@
 1. 登录 Radeon Cloud 并启动一个 GPU Notebook/Workspace。
 2. 在云端实例中安装依赖并部署 Z-Image-Turbo。
 3. 使用 Python 脚本输入提示词并生成图片。
-4. 将生图能力封装成一个简单网页应用。
-5. 理解“通用下载部署”和“教师预缓存镜像部署”两种课堂组织方式。
-6. 了解使用少量图片进行 LoRA 微调的基本流程。
+4. 将生图能力封装成一个 Jupyter Notebook 内嵌交互控件。
+5. 了解使用少量图片进行 LoRA 微调的基本流程。
 
 本实验：云端 GPU 资源如何支撑一个可运行的 AI 生图应用。
 
@@ -28,15 +27,10 @@
 ├── scripts
 │   ├── 00_check_gpu.py
 │   ├── 01_generate_zimage.py
-│   ├── 02_gradio_zimage_app.py
 │   ├── 03_prepare_lora_dataset.py
 │   ├── 04_train_lora_reference.sh
-│   ├── 05_warmup_model_cache.py
+│   ├── 06_notebook_photo_widget.py
 │   └── install_deps.sh
-├── docker
-│   ├── Dockerfile.zimage
-│   ├── build_and_push_zimage.sh
-│   └── README.md
 └── assets
     └── 若干实验截图
 ```
@@ -69,7 +63,6 @@ https://radeon.anruicloud.com/
 
 Gallery 页面常用按钮如下：
 
-- `Create Template`：教师创建课程模板时使用。
 - `Preview`：预览已有 Notebook 模板。
 - `Launch`：启动 GPU Notebook/Workspace。
 - 顶部 `Gallery`：模板库。
@@ -79,7 +72,7 @@ Gallery 页面常用按钮如下：
 
 ## 四、基础实验：通用下载部署方案
 
-本方案适合第一次验证流程。缺点是首次运行会下载 Z-Image-Turbo 模型，模型文件较大，课堂上可能等待较久。
+本方案使用默认在线下载安装流程。首次运行会下载 Z-Image-Turbo 模型，实测速度较快，通常等待几分钟即可；后续同一实例复用缓存会更快。
 
 ### 步骤 1：启动 Blank Notebook
 
@@ -184,7 +177,7 @@ python scripts/00_check_gpu.py
 - `safetensors`
 - `pillow`
 
-如果安装过程中网络较慢，请耐心等待。教师也可以提前使用后文的“懒人镜像方案”避免课堂等待。
+如果安装过程中网络较慢，请耐心等待。实际测试中 ModelScope 下载速度较快，课堂可直接使用默认在线下载方案。
 
 ### 步骤 7：运行命令行生图脚本
 
@@ -235,142 +228,47 @@ python scripts/01_generate_zimage.py \
 2. 生图脚本运行输出。
 3. 生成图片。
 
-## 五、进阶实验：部署网页生图应用
+## 五、进阶实验：Notebook 控件版交互生图
 
-基础脚本跑通后，可以进一步做一个网页应用。
+基础脚本跑通后，推荐使用 Jupyter Notebook 内嵌控件版作为交互界面。这个方案直接在 Notebook 输出区运行，不需要额外打开外部网页，课堂使用更稳定。
 
-### 步骤 1：启动 Gradio 应用
+### 步骤 1：新建 Notebook
 
-如果没有安装 `gradio`，单独安装网页应用依赖：
+在 JupyterLab 左上角点击 `+`，选择 `Python 3 (ipykernel)` 新建 Notebook。
 
-```bash
-python -m pip install -U gradio
-```
+### 步骤 2：启动控件版生图界面
 
-运行这行安装会报以下依赖冲突，但是不影响安装成功
-
-![](assets/20260611_102815_image.png)
-
-接着在云端终端运行：
-
-```bash
-python -c "import gradio as gr; print(gr.__version__)"
-python scripts/02_gradio_zimage_app.py
-```
-
-![](assets/20260611_102957_image.png)
-
-如果后面平台端口代理打不开，可以改用 Gradio 临时公网链接。先在终端按 `Ctrl+C` 停止当前 Gradio，再运行：
-
-```bash
-GRADIO_SHARE=1 python scripts/02_gradio_zimage_app.py
-```
-
-如果出现以下错误：
-
-```text
-Could not create share link. Missing file: /root/.cache/huggingface/gradio/frpc/frpc_linux_amd64_v0.3
-```
-
-说明 Gradio 需要的临时公网隧道程序 `frpc` 没有自动下载成功。先运行：
-
-```bash
-bash scripts/install_gradio_frpc.sh
-```
-
-如果脚本下载时出现 `curl: (28) Failed to connect ... Timeout was reached`，说明 Radeon Cloud 容器连不上 Hugging Face 的 CDN。此时不要继续等待，改为手动上传：
-
-1. 在本机浏览器打开并下载：
-
-```text
-https://cdn-media.huggingface.co/frpc-gradio-0.3/frpc_linux_amd64
-```
-
-2. 在 JupyterLab 左侧文件区进入 `/workspace/radeon-zimage-lab`，点击上传按钮，把下载的 `frpc_linux_amd64` 上传到项目根目录。
-
-   ![](assets/20260611_105906_image.png)
-3. 回到云端终端重新运行：
-
-```bash
-bash scripts/install_gradio_frpc.sh
-```
-
-![](assets/20260611_110003_image.png)
-
-脚本会自动把上传的文件复制到：
-
-```text
-/root/.cache/huggingface/gradio/frpc/frpc_linux_amd64_v0.3
-```
-
-然后重新启动：
-
-```bash
-GRADIO_SHARE=1 python scripts/02_gradio_zimage_app.py
-```
-
-启动后终端会多输出一行类似：
-
-```text
-Running on public URL: https://xxxxxxxxxxxxxxxx.gradio.live
-```
-
-把这个 `gradio.live` 链接复制到浏览器打开即可。该链接是临时链接，终端进程停止或实例关闭后就会失效。
-
-### 步骤 2：打开网页
-
-根据 Radeon Cloud/Jupyter 的端口代理方式打开 `7860` 端口。
-
-先尝试把当前 Jupyter 地址中的：
-
-```text
-/lab/tree/radeon-zimage-lab/outputs
-```
-
-替换为：
-
-```text
-/proxy/7860/
-```
-
-如果页面显示 `404 : Not Found`，说明当前平台没有开放标准 Jupyter 端口代理，使用上一步的 `GRADIO_SHARE=1` 临时公网链接。
-
-常见方式有四种：
-
-1. Notebook 页面自动显示 Gradio 链接，直接点击。
-2. Jupyter 提供端口转发入口，选择 `7860`。
-3. 使用 `GRADIO_SHARE=1` 获取 `gradio.live` 临时公网链接。
-4. 如果平台没有暴露端口，请在 Notebook 单元格中运行 Gradio，直接在输出区域使用。
-
-### 步骤 2.1：端口和临时链接都失败时，使用 Notebook 控件版
-
-如果 `/proxy/7860/` 是 404，`GRADIO_SHARE=1` 又因为网络原因无法创建公网链接，可以直接使用 Jupyter Notebook 内嵌控件版。这个方案不需要开放端口，也不需要 `gradio.live`。
-
-操作步骤：
-
-1. 在 JupyterLab 左上角点击 `+`。
-2. 选择 `Python 3 (ipykernel)` 新建 Notebook。
-3. 在第一个单元格运行：
+在第一个单元格运行：
 
 ```python
 %cd /workspace/radeon-zimage-lab
 %run scripts/06_notebook_photo_widget.py
 ```
 
-4. 等模型加载完成后，Notebook 输出区会出现照片描述、摄影风格、图片尺寸、随机种子和 `生成图片` 按钮。
-5. 点击 `生成图片` 后，图片会直接显示在 Notebook 输出区，并保存到 `outputs/notebook_widget_seed_*.png`。
+首次运行会加载 Z-Image-Turbo 模型，请等待终端和 Notebook 输出区显示：
 
-课堂中如果网络限制较多，推荐优先使用这个控件版作为“进阶交互界面”，比 Gradio 外部访问更稳定。
+```text
+Model is ready.
+```
 
-### 步骤 3：使用网页生成图片
+随后 Notebook 输出区会出现一个交互面板，包含：
 
-网页包含以下控件：
-
+- `场景预设`：高山湖泊旅行照、城市夜景街拍、海边日落人像、森林徒步照片。
 - `照片描述`：输入想生成的人物、风景或旅行场景。
 - `摄影风格`：选择人像写真、旅行风景照、城市街拍、户外运动照。
 - `图片尺寸`：建议课堂使用 `768x768` 或 `512x512`。
 - `随机种子`：相同提示词和种子通常生成相近结果。
 - `生成图片`：点击后开始推理。
+
+### 步骤 3：生成并查看图片
+
+点击 `生成图片` 后，图片会显示在 Notebook 的 `生成预览` 区域，并保存到：
+
+```text
+outputs/notebook_photo_时间_seed_种子.png
+```
+
+如果 Notebook 输出区没有立即刷新，可以打开左侧 `outputs` 目录查看生成的 `.png` 文件。
 
 ### 步骤 4：学生小任务
 
@@ -383,142 +281,11 @@ Running on public URL: https://xxxxxxxxxxxxxxxx.gradio.live
 
 提交内容：
 
-- 网页界面截图。
-- 生成图片截图。
-- 所使用的提示词。
+- Notebook 控件界面截图。
+- 生成图片截图或图片文件。
+- 所使用的提示词、摄影风格、图片尺寸和随机种子。
 
-## 六、懒人部署方案：教师预缓存镜像，学生免下载
-
-### 适用场景
-
-如果全班学生都在课堂上首次下载 Z-Image-Turbo，会出现以下问题：
-
-- 模型文件较大，下载时间不可控。
-- 多人同时下载会占用带宽。
-- 学生容易长时间等待，课堂体验不好。
-
-因此建议教师课前准备一个“已安装依赖、已缓存模型”的容器镜像。
-
-### 平台可行性判断
-
-Radeon Cloud 的 Gallery 页面提供 `Create Template` 按钮。页面源码中可以看到创建模板表单包含以下字段：
-
-- `Title`
-- `Description`
-- `Category`
-- `Tags`
-- `Container Image`
-- `GitHub Repo URL`
-- `Branch`
-- `Notebook Path`
-- `Cover URL`
-
-这说明平台支持基于已有容器镜像创建模板。但它看起来不是在网页中直接构建镜像，而是选择一个已经存在或已经被平台允许的容器镜像。
-
-![Create Template 入口位置](assets/20260611_083317_image.png)
-
-### 教师课前镜像构建
-
-本目录提供了参考 Dockerfile：
-
-```text
-docker/Dockerfile.zimage
-```
-
-它做了三件事：
-
-1. 基于 Radeon Cloud 的 ROCm/PyTorch 基础镜像。
-2. 安装 Z-Image-Turbo 推理所需 Python 依赖。
-3. 预下载 `Tongyi-MAI/Z-Image-Turbo` 到 `/opt/models`。
-
-构建并推送镜像：
-
-```bash
-cd /Users/keshiwei/C/RadeonCloud
-
-REGISTRY_IMAGE=registry.example.com/your-namespace/radeon-zimage-turbo:rocm7.2 \
-  bash docker/build_and_push_zimage.sh
-```
-
-请把 `REGISTRY_IMAGE` 替换成 Radeon Cloud 可访问的镜像仓库地址。
-
-### 在 Radeon Cloud 中创建懒人模板
-
-教师登录 Radeon Cloud 后：
-
-1. 进入 `Gallery`。
-2. 点击 `Create Template`。
-3. 填写 `Title`，例如：
-
-```text
-Z-Image-Turbo 生图实验
-```
-
-4. 填写 `Description`，例如：
-
-```text
-已缓存 Z-Image-Turbo 模型，学生可直接运行脚本生成图片
-```
-
-5. `Category` 选择或填写：
-
-```text
-Courses
-```
-
-6. `Tags` 填写：
-
-```text
-z-image, image-generation, rocm
-```
-
-7. `Container Image` 选择教师提前推送的镜像：
-
-```text
-registry.example.com/your-namespace/radeon-zimage-turbo:rocm7.2
-```
-
-8. `GitHub Repo URL` 填写教师脚本仓库地址：
-
-```text
-https://github.com/<teacher-name>/radeon-zimage-lab.git
-```
-
-9. `Branch` 填写：
-
-```text
-main
-```
-
-10. `Notebook Path` 可填写教师准备好的 Notebook，例如：
-
-```text
-notebooks/zimage_lab.ipynb
-```
-
-如果只使用终端脚本，可以留空。
-
-11. 点击 `Create Template`。
-
-注意：如果 `Container Image` 下拉框中看不到教师镜像，说明平台可能需要管理员先加入镜像白名单或镜像列表。此时请联系平台管理员创建模板或开放该镜像。
-
-### 学生使用懒人模板
-
-学生只需要：
-
-1. 登录 Radeon Cloud。
-2. 在 Gallery 搜索 `Z-Image-Turbo 生图实验`。
-3. 点击模板卡片下方的 `Launch`。
-4. 进入 Notebook 后直接运行：
-
-```bash
-python scripts/00_check_gpu.py
-python scripts/01_generate_zimage.py
-```
-
-因为镜像中已经预缓存模型，首次运行不需要再下载几十 GB 模型，课堂体验会明显好很多。
-
-## 七、项目拓展：LoRA 微调自己的生图风格
+## 六、项目拓展：LoRA 微调自己的生图风格
 
 ### 重要说明
 
@@ -618,7 +385,7 @@ accelerate launch examples/z_image/model_training/train.py \
 
 Z-Image-Turbo 是蒸馏加速模型，直接训练可能影响它的快速生成能力。课堂项目中建议只把它作为体验 LoRA 微调流程使用，不要承诺一定得到稳定高质量模型。
 
-## 八、常见问题
+## 七、常见问题
 
 ### 1. 为什么代码里写的是 `cuda`，但平台是 AMD GPU？
 
@@ -626,7 +393,7 @@ PyTorch ROCm 环境通常复用 `torch.cuda` 接口，因此 AMD GPU 也会通�
 
 ### 2. 第一次运行为什么很慢？
 
-首次运行需要安装依赖并下载模型。建议教师课前使用懒人镜像方案，把依赖和模型缓存进镜像。
+首次运行需要安装依赖并下载模型。实际测试中 ModelScope 下载速度较快，一般可以直接使用默认在线下载方案。
 
 ### 3. `pip install git+https://github.com/huggingface/diffusers` 为什么会失败？
 
@@ -694,7 +461,7 @@ ModuleNotFoundError("No module named 'torch'")
 CUDA/ROCm interface available: True
 ```
 
-如果检查失败，请换用包含 ROCm/PyTorch 的 Radeon Cloud 模板，或者使用教师提前制作的懒人镜像。不要继续安装普通 PyPI 版 `torch`。
+如果检查失败，请换用包含 ROCm/PyTorch 的 Radeon Cloud 模板。不要继续安装普通 PyPI 版 `torch`。
 
 ### 6. 安装依赖时看到 `pip's dependency resolver` 提示怎么办？
 
@@ -711,7 +478,7 @@ ERROR: pip's dependency resolver does not currently take into account all the pa
 Environment is ready.
 ```
 
-这不是脚本失败，而是 pip 对已有平台包的兼容性提示。新版脚本默认不再安装 `gradio/starlette`，会尽量减少这种无关提示。
+这不是脚本失败，而是 pip 对已有平台包的兼容性提示。新版基础安装脚本只安装命令行和 Notebook 控件版所需依赖，会尽量减少这种无关提示。
 
 如果脚本中途真的失败，终端最后不会出现 `Environment is ready`。此时先重新运行：
 
@@ -731,25 +498,16 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 
 也可以在后续版本中加入 CPU offload 或使用 DiffSynth-Studio 的低显存推理方案。
 
-### 8. Gradio 网页打不开怎么办？
+### 8. Notebook 控件版没有显示图片怎么办？
 
-优先检查：
-
-1. 终端是否显示 `Running on local URL`。
-2. `/proxy/7860/` 是否显示 404。
-3. 终端是否已经用 `GRADIO_SHARE=1` 重新启动，并输出 `Running on public URL`。
-4. 如果提示缺少 `frpc_linux_amd64_v0.3`，是否已运行 `bash scripts/install_gradio_frpc.sh`。
-
-如果平台没有开放端口代理，就使用 `gradio.live` 临时链接。临时链接只适合课堂演示和短时间体验，不要放入长期文档或公开传播。
-
-如果 `gradio.live` 也失败，使用 Notebook 控件版：
+先检查 Notebook 单元格是否已经运行完成，且日志里是否出现保存路径。如果图片没有直接显示，打开左侧 `outputs` 目录查看生成文件。也可以重新运行控件脚本：
 
 ```python
 %cd /workspace/radeon-zimage-lab
 %run scripts/06_notebook_photo_widget.py
 ```
 
-这是 Radeon Cloud 当前环境下最稳的交互方案。
+新版控件脚本会把生成后的 PNG 字节写入 `widgets.Image` 预览区，并同时保存到 `outputs` 目录。
 
 ### 9. 学生需要提交什么？
 
@@ -762,12 +520,12 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 
 进阶实验提交：
 
-- Gradio 网页截图。
-- 输入提示词。
+- Notebook 控件界面截图。
+- 输入提示词、摄影风格、图片尺寸和随机种子。
 - 生成图片。
-- 对网页应用结构的简要说明。
+- 对控件版交互流程的简要说明。
 
-## 九、课堂建议
+## 八、课堂建议
 
 30 分钟课堂建议只做基础实验：
 
@@ -778,4 +536,4 @@ python scripts/01_generate_zimage.py --height 512 --width 512
 5. 修改提示词再生成一次。
 6. 提交截图。
 
-网页应用适合第二节课；LoRA 微调适合大作业。
+Notebook 控件版适合第二节课；LoRA 微调适合大作业。
