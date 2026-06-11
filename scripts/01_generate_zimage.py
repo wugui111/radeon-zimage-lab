@@ -10,7 +10,7 @@ from modelscope import snapshot_download
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate one image with Z-Image-Turbo on Radeon Cloud.")
-    parser.add_argument("--prompt", type=str, default="为软件技术专业实训周设计一张中文宣传海报，主题是云计算与人工智能应用开发，蓝白科技风，清晰中文标题，现代设计，高质量")
+    parser.add_argument("--prompt", type=str, default="真实摄影风格，一位年轻旅行者站在清晨的高山湖泊旁，远处雪山和薄雾，金色日出光线，自然表情，电影感构图，高细节，画面中不包含文字和水印")
     parser.add_argument("--height", type=int, default=768)
     parser.add_argument("--width", type=int, default=768)
     parser.add_argument("--seed", type=int, default=42)

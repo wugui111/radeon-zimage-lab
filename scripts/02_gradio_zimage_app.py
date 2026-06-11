@@ -26,10 +26,10 @@ pipe = ZImagePipeline.from_pretrained(
 
 
 STYLE_PREFIX = {
-    "校园科技海报": "校园科技海报风格，蓝白配色，现代排版，中文标题清晰，",
-    "电商商品图": "电商商品宣传图风格，干净背景，主体突出，商业摄影质感，",
-    "课程封面": "在线课程封面风格，信息层级清楚，适合作为教学资源封面，",
-    "国潮插画": "国潮插画风格，中国传统纹样，现代视觉设计，",
+    "人像写真": "真实摄影，人像写真，85mm镜头，浅景深，自然肤色，电影感光线，画面中不包含文字和水印，",
+    "旅行风景照": "真实旅行摄影，广角镜头，自然风景，日出或日落光线，高细节，画面中不包含文字和水印，",
+    "城市街拍": "真实城市街拍，35mm镜头，自然抓拍，街道环境光，电影色彩，画面中不包含文字和水印，",
+    "户外运动照": "真实户外运动摄影，动态构图，清晰主体，自然光，高速快门质感，画面中不包含文字和水印，",
 }
 
 
@@ -58,17 +58,17 @@ def generate(prompt, style, seed, size):
 
 
 with gr.Blocks(title="Radeon Cloud AI 生图应用") as demo:
-    gr.Markdown("# Radeon Cloud AI 生图应用")
-    gr.Markdown("输入文字描述，调用部署在 Radeon Cloud GPU 实例上的 Z-Image-Turbo 生成图片。")
+    gr.Markdown("# Radeon Cloud AI 摄影生图应用")
+    gr.Markdown("输入人物、风景或旅行场景描述，调用部署在 Radeon Cloud GPU 实例上的 Z-Image-Turbo 生成照片风格图片。")
 
     with gr.Row():
         with gr.Column():
             prompt = gr.Textbox(
-                label="图片描述",
-                value="为软件技术专业实训周设计一张中文宣传海报，主题是云计算与人工智能应用开发",
+                label="照片描述",
+                value="一位年轻旅行者站在清晨的高山湖泊旁，远处雪山和薄雾，金色日出光线，自然表情",
                 lines=4,
             )
-            style = gr.Dropdown(list(STYLE_PREFIX.keys()), value="校园科技海报", label="风格")
+            style = gr.Dropdown(list(STYLE_PREFIX.keys()), value="旅行风景照", label="摄影风格")
             size = gr.Dropdown(["512x512", "768x768", "1024x1024"], value="768x768", label="图片尺寸")
             seed = gr.Number(value=42, precision=0, label="随机种子")
             button = gr.Button("生成图片", variant="primary")

@@ -11,7 +11,6 @@ cd DiffSynth-Studio
 python -m pip install -e .
 
 echo "Prepare your dataset first, for example:"
-echo "python ../03_prepare_lora_dataset.py --image-dir ./my_images --caption '校园建筑风格，蓝白科技风海报' --output-dir ./lora_dataset"
+echo "python ../03_prepare_lora_dataset.py --image-dir ./my_images --caption 'sks_person, realistic portrait photo, natural light, cinematic photography' --output-dir ./lora_dataset"
 echo
 echo "Then follow the current DiffSynth-Studio Z-Image LoRA command from the official document."
-
