@@ -280,6 +280,28 @@ Could not create share link. Missing file: /root/.cache/huggingface/gradio/frpc/
 bash scripts/install_gradio_frpc.sh
 ```
 
+如果脚本下载时出现 `curl: (28) Failed to connect ... Timeout was reached`，说明 Radeon Cloud 容器连不上 Hugging Face 的 CDN。此时不要继续等待，改为手动上传：
+
+1. 在本机浏览器打开并下载：
+
+```text
+https://cdn-media.huggingface.co/frpc-gradio-0.3/frpc_linux_amd64
+```
+
+2. 在 JupyterLab 左侧文件区进入 `/workspace/radeon-zimage-lab`，点击上传按钮，把下载的 `frpc_linux_amd64` 上传到项目根目录。
+
+3. 回到云端终端重新运行：
+
+```bash
+bash scripts/install_gradio_frpc.sh
+```
+
+脚本会自动把上传的文件复制到：
+
+```text
+/root/.cache/huggingface/gradio/frpc/frpc_linux_amd64_v0.3
+```
+
 然后重新启动：
 
 ```bash
