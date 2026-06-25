@@ -6,6 +6,10 @@ from pathlib import Path
 
 from IPython.display import display
 
+# Set this before torch is imported. It helps PyTorch reuse fragmented GPU
+# memory when the notebook has already generated images in the same kernel.
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 try:
     import ipywidgets as widgets
 except Exception as exc:
@@ -50,6 +54,45 @@ PROMPT_PRESETS = {
 }
 
 
+def clear_gpu_cache():
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        try:
+            torch.cuda.ipc_collect()
+        except Exception:
+            pass
+
+
+def enable_memory_saving(pipeline):
+    enabled = []
+
+    if hasattr(pipeline, "enable_vae_slicing"):
+        pipeline.enable_vae_slicing()
+        enabled.append("VAE slicing")
+    elif hasattr(pipeline, "vae") and hasattr(pipeline.vae, "enable_slicing"):
+        pipeline.vae.enable_slicing()
+        enabled.append("VAE slicing")
+
+    if hasattr(pipeline, "enable_vae_tiling"):
+        pipeline.enable_vae_tiling()
+        enabled.append("VAE tiling")
+    elif hasattr(pipeline, "vae") and hasattr(pipeline.vae, "enable_tiling"):
+        pipeline.vae.enable_tiling()
+        enabled.append("VAE tiling")
+
+    if os.environ.get("ZIMAGE_DISABLE_CPU_OFFLOAD") == "1":
+        pipeline.to("cuda")
+        enabled.append("full CUDA mode")
+    elif hasattr(pipeline, "enable_model_cpu_offload"):
+        pipeline.enable_model_cpu_offload()
+        enabled.append("model CPU offload")
+    else:
+        pipeline.to("cuda")
+        enabled.append("full CUDA mode")
+
+    return enabled
+
+
 if not torch.cuda.is_available():
     raise RuntimeError("No GPU is available. Please run this notebook inside a Radeon Cloud GPU instance.")
 
@@ -60,7 +103,10 @@ pipe = ZImagePipeline.from_pretrained(
     model_dir,
     dtype=torch.bfloat16,
     low_cpu_mem_usage=False,
-).to("cuda")
+)
+memory_modes = enable_memory_saving(pipe)
+clear_gpu_cache()
+print("Memory saving modes:", ", ".join(memory_modes))
 print("Model is ready.")
 
 
@@ -82,8 +128,8 @@ style = widgets.Dropdown(
     layout=widgets.Layout(width="260px"),
 )
 size = widgets.Dropdown(
-    options=["512x512", "768x768", "1024x1024"],
-    value="768x768",
+    options=["512x512", "640x640", "768x768"],
+    value="512x512",
     description="图片尺寸",
     layout=widgets.Layout(width="220px"),
 )
@@ -148,6 +194,7 @@ def generate(_=None):
         print("Seed:", seed.value)
         start = time.time()
         try:
+            clear_gpu_cache()
             image = pipe(
                 prompt=final_prompt,
                 height=height,
@@ -167,10 +214,23 @@ def generate(_=None):
             print(f"Saved to: {output_path.resolve()}")
             print(f"Generation time: {elapsed:.2f} seconds")
             status.value = f"<b>状态：</b>生成完成，用时 {elapsed:.2f} 秒。图片已显示并保存。"
+        except torch.cuda.OutOfMemoryError as exc:
+            clear_gpu_cache()
+            status.value = (
+                "<b>状态：</b>显存不足。请先选择 <code>Kernel -> Restart Kernel</code>，"
+                "重新运行控件，并使用 <code>512x512</code> 尺寸生成。"
+            )
+            print("GPU out of memory.")
+            print("Recommended recovery:")
+            print("1. In JupyterLab, click Kernel -> Restart Kernel.")
+            print("2. Run the widget cell again.")
+            print("3. Use 512x512 first; avoid opening multiple generation kernels at the same time.")
+            print(f"Original error: {exc}")
         except Exception as exc:
             status.value = f"<b>状态：</b>生成失败：<code>{exc!r}</code>"
             raise
         finally:
+            clear_gpu_cache()
             set_busy(False)
 
 

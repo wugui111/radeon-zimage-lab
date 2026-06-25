@@ -262,7 +262,7 @@ Model is ready.
 - `场景预设`：高山湖泊旅行照、城市夜景街拍、海边日落人像、森林徒步照片。
 - `照片描述`：输入想生成的人物、风景或旅行场景。
 - `摄影风格`：选择人像写真、旅行风景照、城市街拍、户外运动照。
-- `图片尺寸`：建议课堂使用 `768x768` 或 `512x512`。
+- `图片尺寸`：建议课堂默认使用 `512x512`；如果显存充足、生成稳定，再尝试 `640x640` 或 `768x768`。
 - `随机种子`：相同提示词和种子通常生成相近结果。
 - `生成图片`：点击后开始推理。
 
@@ -278,6 +278,29 @@ outputs/notebook_photo_时间_seed_种子.png
 ![](assets/20260611_121231_image.png)
 
 如果 Notebook 输出区没有立即刷新，可以打开左侧 `outputs` 目录查看生成的 `.png` 文件。
+
+### 常见问题：出现 HIP out of memory
+
+如果生成时报错：
+
+```text
+OutOfMemoryError: HIP out of memory
+```
+
+通常不是代码语法错误，而是当前 Notebook Kernel 中显存已经被模型和上一次推理占满。处理方法如下：
+
+1. 在 JupyterLab 顶部菜单点击 `Kernel -> Restart Kernel`。
+2. 重新运行单元格：
+
+   ```python
+   %cd /workspace/radeon-zimage-lab
+   %run scripts/06_notebook_photo_widget.py
+   ```
+
+3. 图片尺寸先选择 `512x512`，不要一开始就使用 `768x768`。
+4. 不要同时打开多个 Notebook Kernel 或多个终端脚本运行同一个模型。
+
+新版 `06_notebook_photo_widget.py` 已默认启用 CPU offload 和 VAE 分块解码，课堂中优先使用这个脚本版本。
 
 ### 步骤 4：学生小任务
 

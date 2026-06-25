@@ -15,3 +15,5 @@ Inside Radeon Cloud, PyTorch ROCm usually exposes the GPU through the `cuda` int
 The script checks that ROCm PyTorch is already visible, constrains the current `torch` version so pip does not replace it, and installs `diffusers==0.36.0` from PyPI because this version already includes `ZImagePipeline` and avoids GitHub certificate failures during class.
 
 The base installer does not install or downgrade web-server dependencies. The default interactive UI is the Notebook widget script, which works inside Jupyter without opening external ports.
+
+The Notebook widget script defaults to `512x512` and enables CPU offload plus VAE slicing/tiling to reduce GPU memory pressure. If a notebook still reports `HIP out of memory`, restart the Jupyter kernel and run the widget again before generating another image.
